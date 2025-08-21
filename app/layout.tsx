@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     publishedTime: "2024-08-04T12:51:35+02:00",
     images: [
       {
-        url: "https://calculator.ratio1.ai/assets/Calculator.png",
+        url: "https://calculator.ratio1.ai/Calculator.png",
         width: 1200,
         height: 630,
         alt: "Ratio1 Calculator",
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     creator: "@ratio1ai",
     images: [
       {
-        url: "https://calculator.ratio1.ai/assets/Calculator.png",
+        url: "https://calculator.ratio1.ai/Calculator.png",
         alt: "Ratio1 Calculator",
         type: "image/png",
       },
