@@ -595,9 +595,7 @@ export default function Ratio1RoiCalculator() {
                 <Row label="Months to break-even">
                   {isFinite(monthsToROI) ? fmtNumber(monthsToROI, 2) : "–"}
                 </Row>
-                <Row label="Estimated break-even date">
-                  {breakEvenDate ?? "–"}
-                </Row>
+                <Row label="Est. break-even date">{breakEvenDate ?? "–"}</Row>
               </div>
 
               {/* Emphasized APR (same style as Total investment) */}
@@ -751,7 +749,9 @@ function Row({
   return (
     <div className="flex items-center justify-between rounded-lg tablebg px-3 py-2">
       <span className="textlight font-semibold">{label}</span>
-      <span className="font-semibold accent text-lg">{children}</span>
+      <span className="font-semibold accent sm:text-lg text-md">
+        {children}
+      </span>
     </div>
   );
 }
