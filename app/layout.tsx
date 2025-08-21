@@ -3,8 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "./components/Navbar";
 import "./globals.css";
 
-const hostId = process.env.EE_HOST_ID || "Unknown";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -102,7 +100,8 @@ export default function RootLayout({
         <Navbar />
         {children}
         <div className="flex flex-row justify-center items-center bg-slate-50 pb-2 pt-20 text-slate-900">
-          Proudly served by:<span className="accent ml-1">{hostId}</span>
+          Proudly served by:
+          <span className="accent ml-1">{process.env.EE_HOST_ID}</span>
         </div>
         <div className="flex flex-row justify-center items-center bg-slate-50 pb-20 text-slate-900">
           ©
