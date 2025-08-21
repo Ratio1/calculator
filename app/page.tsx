@@ -194,11 +194,14 @@ export default function Ratio1RoiCalculator() {
   }, [daysToROI]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pt-10">
       <div className="mx-auto max-w-5xl p-6">
-        <header className="mb-6 flex items-baseline justify-between">
-          <h1 className="text-2xl font-bold">ROI Calculator V1.0</h1>
-        </header>
+        <div className="flex flex-row justify-start items-start gap-1">
+          <header className="mb-6 flex items-baseline justify-between">
+            <h1 className="text-2xl font-bold">ROI Calculator</h1>
+          </header>
+          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.0</div>
+        </div>
         <section className="rounded-2xl bg-white p-5 shadow mb-4">
           <div className="flex items-start">
             {/* icon */}

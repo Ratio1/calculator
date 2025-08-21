@@ -9,6 +9,7 @@
   --color-primary: #1b47f7;
   --color-text_light: #7a91a8;
   --color-table_light: #f1f5f9;
+  --color-label: #d6e0ec;
   --color-slate-150: #e9edf2;
 }
 
@@ -34,6 +35,10 @@ body {
 
 .tablebg {
   background-color: var(--color-table_light);
+}
+
+.label {
+  background-color: var(--color-label);
 }
 
 .button {
