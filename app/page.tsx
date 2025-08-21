@@ -197,7 +197,7 @@ export default function Ratio1RoiCalculator() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-5xl p-6">
         <header className="mb-6 flex items-baseline justify-between">
-          <h1 className="text-2xl font-bold">ROI Calculator</h1>
+          <h1 className="text-2xl font-bold">ROI Calculator V1.0</h1>
         </header>
         <section className="rounded-2xl bg-white p-5 shadow mb-4">
           <div className="flex items-start">
