@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "./components/Navbar";
 import "./globals.css";
+import ServedBy from "./components/ServedBy";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -99,10 +100,7 @@ export default function RootLayout({
       >
         <Navbar />
         {children}
-        <div className="flex flex-row justify-center items-center bg-slate-50 pb-2 pt-20 text-slate-900">
-          Proudly served by:
-          <span className="accent ml-1">{process.env.EE_HOST_ID}</span>
-        </div>
+        <ServedBy />
         <div className="flex flex-row justify-center items-center bg-slate-50 pb-20 text-slate-900">
           ©
           <a href="https://ratio1.ai/" className="accent font-medium mr-1">
