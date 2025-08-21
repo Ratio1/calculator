@@ -637,7 +637,7 @@ export default function Ratio1RoiCalculator() {
               )}
               {!isFinite(daysToROI) && (
                 <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                  With the 1,575 R1 cap and current settings, total revenue
+                  With the 1,575 R1 cap and current settings, total rewards
                   cannot reach your total investment. Increase R1 price, enable
                   Proof of AI, or reduce costs.
                 </div>
@@ -697,7 +697,7 @@ export default function Ratio1RoiCalculator() {
             *ROI includes optional VAT and hardware if enabled, and accounts for
             the PoA lifetime cap of {fmtNumber(MAX_R1_PER_LICENSE, 0)} R1 per
             license. After approximately {fmtNumber(CAP_DAYS, 0)} days, PoA
-            stops and only Proof of AI (if any) contributes to revenue.
+            stops and only Proof of AI (if any) contributes to rewards.
           </p>
         </section>
 
