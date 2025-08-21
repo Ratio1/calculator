@@ -18,6 +18,7 @@ const TIERS = [
 
 type TierId = (typeof TIERS)[number]["id"];
 
+/* ---------- formatting ---------- */
 function fmtCurrencyUSD(v: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -44,15 +45,20 @@ function fmtPercent(v: number, digits = 2) {
   }).format(v)}%`;
 }
 
-// Accept both "," and "." as decimal separators, return number or ""
-function parseDecimalInput(value: string): number | "" {
-  const cleaned = value.replace(/\s+/g, "").replace(",", ".");
-  if (cleaned === "" || cleaned === "." || cleaned === "-") return "";
+/* ---------- input helpers ---------- */
+// Keep raw text (accepts "1.", "1,", etc.) and normalize comma to dot.
+function normalizeDecimalInput(value: string): string {
+  return value.replace(/\s+/g, "").replace(",", ".");
+}
+// Parse a string to number safely (returns NaN for partials like "" or ".")
+function toNum(v: string): number {
+  const cleaned = v.replace(/\s+/g, "").replace(",", ".");
+  if (cleaned === "" || cleaned === "." || cleaned === "-") return NaN;
   const n = Number(cleaned);
-  return Number.isFinite(n) ? n : "";
+  return Number.isFinite(n) ? n : NaN;
 }
 
-// Accessible, vertically-centered toggle
+/* ---------- Accessible toggle ---------- */
 function Toggle({
   checked,
   onChange,
@@ -89,22 +95,21 @@ export default function Ratio1RoiCalculator() {
 
   // Price mode: API vs Manual
   const [useManualPrice, setUseManualPrice] = useState<boolean>(false);
-  const [manualR1USD, setManualR1USD] = useState<number | "">("");
+  // Keep raw text (fixed for decimals)
+  const [manualR1USD, setManualR1USD] = useState<string>("");
 
   // Optional costs/production with toggles
   const [hardwareEnabled, setHardwareEnabled] = useState<boolean>(false);
-  const [hardwarePrice, setHardwarePrice] = useState<number | "">("");
+  const [hardwarePrice, setHardwarePrice] = useState<string>("");
 
   const [vatEnabled, setVatEnabled] = useState<boolean>(false);
-  const [vatPercent, setVatPercent] = useState<number | "">("");
+  const [vatPercent, setVatPercent] = useState<string>("");
 
   const proofOfAvailabilityPerDay = 1.45; // fixed R1/day
 
   const [aiEnabled, setAiEnabled] = useState<boolean>(false);
-  // CHANGE: Proof of AI input is now USD/month
-  const [proofOfAiUSDPerMonth, setProofOfAiUSDPerMonth] = useState<number | "">(
-    ""
-  );
+  // Proof of AI input is USD/month (raw text)
+  const [proofOfAiUSDPerMonth, setProofOfAiUSDPerMonth] = useState<string>("");
 
   // License selection (always 1 license)
   const [tier, setTier] = useState<TierId>("T1");
@@ -137,31 +142,30 @@ export default function Ratio1RoiCalculator() {
     };
   }, []);
 
-  // When switching to manual, prefill with API price if empty
+  // When switching to manual, prefill with API price if empty (as text)
   function togglePriceMode() {
     setUseManualPrice((prev) => {
       const next = !prev;
-      if (next && manualR1USD === "") setManualR1USD(apiR1USD);
+      if (next && manualR1USD === "") setManualR1USD(String(apiR1USD));
       return next;
     });
   }
 
   const selected = useMemo(() => TIERS.find((t) => t.id === tier)!, [tier]);
 
+  // Numeric parse of text inputs (used for math)
+  const manualR1 = toNum(manualR1USD);
+  const vatPct = toNum(vatPercent);
+  const hwUsd = toNum(hardwarePrice);
+  const aiMonthlyUsd = toNum(proofOfAiUSDPerMonth);
+
   // Effective price based on mode
-  const effectiveR1USD = useManualPrice
-    ? typeof manualR1USD === "number"
-      ? manualR1USD
-      : 0
-    : apiR1USD;
+  const effectiveR1USD =
+    useManualPrice && isFinite(manualR1) ? manualR1 : apiR1USD;
 
   // Production & Rewards
   const usdFromPoA = proofOfAvailabilityPerDay * effectiveR1USD;
-  // CHANGE: Divide monthly Proof of AI by 30 to get daily
-  const usdFromAI =
-    aiEnabled && typeof proofOfAiUSDPerMonth === "number"
-      ? proofOfAiUSDPerMonth / 30
-      : 0;
+  const usdFromAI = aiEnabled && isFinite(aiMonthlyUsd) ? aiMonthlyUsd / 30 : 0;
 
   const dailyUsd = usdFromPoA + usdFromAI; // per license
   const monthlyUsd = dailyUsd * 30;
@@ -170,12 +174,9 @@ export default function Ratio1RoiCalculator() {
   // Costs
   const licenseBasePrice = selected.priceUSD;
   const vatAmount =
-    vatEnabled && typeof vatPercent === "number"
-      ? (licenseBasePrice * vatPercent) / 100
-      : 0;
+    vatEnabled && isFinite(vatPct) ? (licenseBasePrice * vatPct) / 100 : 0;
   const costPerLicense = licenseBasePrice + vatAmount; // license + VAT only
-  const hardwareUsd =
-    hardwareEnabled && typeof hardwarePrice === "number" ? hardwarePrice : 0;
+  const hardwareUsd = hardwareEnabled && isFinite(hwUsd) ? hwUsd : 0;
   const totalInvestment = costPerLicense + hardwareUsd; // total = license (+VAT) + hardware
 
   // ROI & APR
@@ -200,8 +201,9 @@ export default function Ratio1RoiCalculator() {
           <header className="mb-6 flex items-baseline justify-between">
             <h1 className="text-2xl font-bold">ROI Calculator</h1>
           </header>
-          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.0</div>
+          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.0.1</div>
         </div>
+
         <section className="rounded-2xl bg-white p-5 shadow mb-4">
           <div className="flex items-start">
             {/* icon */}
@@ -228,6 +230,7 @@ export default function Ratio1RoiCalculator() {
             </div>
           </div>
         </section>
+
         {/* Inputs */}
         <div className="grid gap-4 md:grid-cols-2">
           <section className="rounded-2xl bg-white p-5 shadow">
@@ -246,7 +249,6 @@ export default function Ratio1RoiCalculator() {
                   >
                     {useManualPrice ? "Manual" : "Live price"}
                   </span>
-
                   <Toggle
                     checked={useManualPrice}
                     onChange={togglePriceMode}
@@ -275,13 +277,9 @@ export default function Ratio1RoiCalculator() {
                       inputMode="decimal"
                       pattern="[0-9]*[.,]?[0-9]*"
                       className="w-full rounded-xl border px-3 py-2 pr-16 tabular-nums"
-                      value={
-                        typeof manualR1USD === "number"
-                          ? String(manualR1USD)
-                          : manualR1USD
-                      }
+                      value={manualR1USD}
                       onChange={(e) =>
-                        setManualR1USD(parseDecimalInput(e.target.value))
+                        setManualR1USD(normalizeDecimalInput(e.target.value))
                       }
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded bg-slate-100 px-2 text-xs">
@@ -346,14 +344,10 @@ export default function Ratio1RoiCalculator() {
                       inputMode="decimal"
                       pattern="[0-9]*[.,]?[0-9]*"
                       className="w-full rounded-xl border px-3 py-2 pr-16"
-                      value={
-                        typeof vatPercent === "number"
-                          ? String(vatPercent)
-                          : vatPercent
-                      }
+                      value={vatPercent}
                       placeholder="0"
                       onChange={(e) =>
-                        setVatPercent(parseDecimalInput(e.target.value))
+                        setVatPercent(normalizeDecimalInput(e.target.value))
                       }
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded bg-slate-100 px-2 text-xs">
@@ -385,14 +379,10 @@ export default function Ratio1RoiCalculator() {
                       inputMode="decimal"
                       pattern="[0-9]*[.,]?[0-9]*"
                       className="w-full rounded-xl border px-3 py-2 pr-16"
-                      value={
-                        typeof hardwarePrice === "number"
-                          ? String(hardwarePrice)
-                          : hardwarePrice
-                      }
+                      value={hardwarePrice}
                       placeholder="0"
                       onChange={(e) =>
-                        setHardwarePrice(parseDecimalInput(e.target.value))
+                        setHardwarePrice(normalizeDecimalInput(e.target.value))
                       }
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded bg-slate-100 px-2 text-xs">
@@ -416,7 +406,7 @@ export default function Ratio1RoiCalculator() {
                 </div>
               </div>
 
-              {/* Proof of AI (optional) - now USD/month */}
+              {/* Proof of AI (optional) - USD/month */}
               <div className="flex items-center justify-between">
                 <span className="text-md font-semibold">
                   Proof of AI (optional)
@@ -438,15 +428,11 @@ export default function Ratio1RoiCalculator() {
                       inputMode="decimal"
                       pattern="[0-9]*[.,]?[0-9]*"
                       className="w-full rounded-xl border px-3 py-2 pr-24"
-                      value={
-                        typeof proofOfAiUSDPerMonth === "number"
-                          ? String(proofOfAiUSDPerMonth)
-                          : proofOfAiUSDPerMonth
-                      }
+                      value={proofOfAiUSDPerMonth}
                       placeholder="0"
                       onChange={(e) =>
                         setProofOfAiUSDPerMonth(
-                          parseDecimalInput(e.target.value)
+                          normalizeDecimalInput(e.target.value)
                         )
                       }
                     />
@@ -483,8 +469,8 @@ export default function Ratio1RoiCalculator() {
 
                 <BreakdownRow
                   label={
-                    vatEnabled && typeof vatPercent === "number"
-                      ? `VAT (${fmtNumber(vatPercent, 1)}%)`
+                    vatEnabled && isFinite(vatPct)
+                      ? `VAT (${fmtNumber(vatPct, 1)}%)`
                       : "VAT"
                   }
                   value={fmtCurrencyUSD(vatAmount)}
@@ -598,8 +584,8 @@ export default function Ratio1RoiCalculator() {
                 {TIERS.map((t) => {
                   const licenseCostWithVat =
                     t.priceUSD +
-                    (vatEnabled && typeof vatPercent === "number"
-                      ? (t.priceUSD * vatPercent) / 100
+                    (vatEnabled && isFinite(vatPct)
+                      ? (t.priceUSD * vatPct) / 100
                       : 0);
                   const roiDays = (licenseCostWithVat + hardwareUsd) / dailyUsd; // includes hardware if entered
                   return (

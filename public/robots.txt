@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: 
+
+Sitemap: https://calculator.ratio1.ai/sitemap.xml
