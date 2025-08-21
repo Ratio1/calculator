@@ -1,0 +1,21 @@
+{
+  "name": "Ratio1 Calculator",
+  "short_name": "Ratio1 Calculator",
+  "description": "Ratio1 Ratio1 calculation tools to guide your research and decision to join the ecosystem-ROI, break-even, APR, and more.",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "theme_color": "#1b47f7",
+  "background_color": "#1b47f7",
+  "display": "standalone"
+}
