@@ -18,7 +18,12 @@ const TIERS = [
 
 type TierId = (typeof TIERS)[number]["id"];
 
-/* ---------- formatting ---------- */
+/** ----------- constants for PoA cap ----------- */
+const TOKENS_PER_DAY = 1.45; // PoA production in R1/day
+const MAX_R1_PER_LICENSE = 1575; // lifetime R1 cap per license
+const CAP_DAYS = MAX_R1_PER_LICENSE / TOKENS_PER_DAY; // ~1086.21 days
+
+/** ----------- formatting ----------- */
 function fmtCurrencyUSD(v: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -45,7 +50,7 @@ function fmtPercent(v: number, digits = 2) {
   }).format(v)}%`;
 }
 
-/* ---------- input helpers ---------- */
+/** ----------- input helpers ----------- */
 // Keep raw text (accepts "1.", "1,", etc.) and normalize comma to dot.
 function normalizeDecimalInput(value: string): string {
   return value.replace(/\s+/g, "").replace(",", ".");
@@ -58,7 +63,32 @@ function toNum(v: string): number {
   return Number.isFinite(n) ? n : NaN;
 }
 
-/* ---------- Accessible toggle ---------- */
+/** ----------- break-even with PoA cap ----------- */
+function breakEvenDaysWithCap(
+  investmentUSD: number,
+  PoA_dailyUSD: number,
+  AI_dailyUSD: number
+): number {
+  if (investmentUSD <= 0) return 0;
+
+  const rateBeforeCap = PoA_dailyUSD + AI_dailyUSD;
+
+  if (rateBeforeCap <= 0) return Infinity;
+
+  const revenueIfRunUntilCap = rateBeforeCap * CAP_DAYS;
+
+  if (investmentUSD <= revenueIfRunUntilCap) {
+    return investmentUSD / rateBeforeCap;
+  }
+
+  // After cap, only AI contributes
+  if (AI_dailyUSD <= 0) return Infinity;
+
+  const remainingAfterCap = investmentUSD - PoA_dailyUSD * CAP_DAYS;
+  return remainingAfterCap / AI_dailyUSD;
+}
+
+/** ----------- Accessible toggle ----------- */
 function Toggle({
   checked,
   onChange,
@@ -104,8 +134,6 @@ export default function Ratio1RoiCalculator() {
 
   const [vatEnabled, setVatEnabled] = useState<boolean>(false);
   const [vatPercent, setVatPercent] = useState<string>("");
-
-  const proofOfAvailabilityPerDay = 1.45; // fixed R1/day
 
   const [aiEnabled, setAiEnabled] = useState<boolean>(false);
   // Proof of AI input is USD/month (raw text)
@@ -163,13 +191,17 @@ export default function Ratio1RoiCalculator() {
   const effectiveR1USD =
     useManualPrice && isFinite(manualR1) ? manualR1 : apiR1USD;
 
-  // Production & Rewards
-  const usdFromPoA = proofOfAvailabilityPerDay * effectiveR1USD;
-  const usdFromAI = aiEnabled && isFinite(aiMonthlyUsd) ? aiMonthlyUsd / 30 : 0;
+  /** ------- derived daily and caps ------- */
+  const PoA_dailyUSD = TOKENS_PER_DAY * effectiveR1USD; // USD/day from PoA
+  const AI_dailyUSD =
+    aiEnabled && isFinite(aiMonthlyUsd) ? aiMonthlyUsd / 30 : 0;
 
-  const dailyUsd = usdFromPoA + usdFromAI; // per license
+  const dailyUsd = PoA_dailyUSD + AI_dailyUSD; // current daily rate (pre-cap)
   const monthlyUsd = dailyUsd * 30;
   const yearlyUsd = dailyUsd * 365;
+
+  // Lifetime PoA value at current price (cap × price)
+  const PoA_lifetimeUSD = MAX_R1_PER_LICENSE * effectiveR1USD;
 
   // Costs
   const licenseBasePrice = selected.priceUSD;
@@ -179,11 +211,16 @@ export default function Ratio1RoiCalculator() {
   const hardwareUsd = hardwareEnabled && isFinite(hwUsd) ? hwUsd : 0;
   const totalInvestment = costPerLicense + hardwareUsd; // total = license (+VAT) + hardware
 
-  // ROI & APR
-  const daysToROI =
-    totalInvestment > 0 && dailyUsd > 0 ? totalInvestment / dailyUsd : Infinity;
+  // ROI & APR (break-even uses PoA cap)
+  const daysToROI = breakEvenDaysWithCap(
+    totalInvestment,
+    PoA_dailyUSD,
+    AI_dailyUSD
+  );
   const weeksToROI = daysToROI / 7;
   const monthsToROI = daysToROI / 30;
+
+  // APR remains a simple ratio using the *current* daily rate (pre-cap), as an indicative metric.
   const apr =
     totalInvestment > 0 ? (yearlyUsd / totalInvestment) * 100 : Infinity;
 
@@ -194,6 +231,9 @@ export default function Ratio1RoiCalculator() {
     return d.toISOString().slice(0, 10);
   }, [daysToROI]);
 
+  // Message condition: if R1 price × 1575 doesn't cover the license (license + VAT)
+  const licenseNotCoveredByPoA = PoA_lifetimeUSD < costPerLicense;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pt-10">
       <div className="mx-auto max-w-5xl p-6">
@@ -201,7 +241,7 @@ export default function Ratio1RoiCalculator() {
           <header className="mb-6 flex items-baseline justify-between">
             <h1 className="text-2xl font-bold">ROI Calculator</h1>
           </header>
-          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.0.1</div>
+          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.0.2</div>
         </div>
 
         <section className="rounded-2xl bg-white p-5 shadow mb-4">
@@ -225,7 +265,8 @@ export default function Ratio1RoiCalculator() {
                 This calculator is for informational purposes only and does not
                 constitute financial advice. It does not account for fees, taxes
                 (other than optional VAT), downtime, or R1/USD exchange rate
-                volatility.
+                volatility. Keep in mind that Proof of Availability (PoA) has a
+                cap of 1,575 R1 per license.
               </p>
             </div>
           </div>
@@ -262,7 +303,7 @@ export default function Ratio1RoiCalculator() {
                 <div className="grid gap-1">
                   <div className="relative flex items-center rounded-xl border bg-slate-50 px-3 py-2 pr-16">
                     <span className="text-slate-700 tabular-nums">
-                      {fmtPlain(apiR1USD)} {/* plain number, no $ */}
+                      {fmtPlain(effectiveR1USD)} {/* plain number, no $ */}
                     </span>
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded bg-slate-100 px-2 text-xs">
                       USD
@@ -401,9 +442,29 @@ export default function Ratio1RoiCalculator() {
                 </span>
                 <div className="flex items-center justify-between rounded-xl border bg-slate-50 px-3 py-2">
                   <span className="text-slate-600">
-                    1.45 R1 / day = {fmtCurrencyUSD(usdFromPoA)}
+                    {TOKENS_PER_DAY} R1 / day = {fmtCurrencyUSD(PoA_dailyUSD)}
                   </span>
                 </div>
+                {/* Updated text exactly as requested, but dynamic */}
+                <p className="text-xs text-slate-500 mt-1">
+                  Each license can mine a maximum of{" "}
+                  <span className="font-semibold">
+                    {fmtNumber(MAX_R1_PER_LICENSE, 0)} R1
+                  </span>{" "}
+                  through PoA. At a rate of{" "}
+                  <span className="font-semibold">
+                    {fmtNumber(TOKENS_PER_DAY, 2)} R1
+                  </span>{" "}
+                  per day, this lasts for approximately{" "}
+                  <span className="font-semibold">
+                    {fmtNumber(CAP_DAYS, 0)} days
+                  </span>
+                  . At the current R1 price, the maximum PoA-mineable value is{" "}
+                  <span className="font-semibold">
+                    {fmtCurrencyUSD(PoA_lifetimeUSD)}
+                  </span>
+                  . After that, only Proof of AI rewards (if enabled) remain.
+                </p>
               </div>
 
               {/* Proof of AI (optional) - USD/month */}
@@ -554,15 +615,33 @@ export default function Ratio1RoiCalculator() {
                   {fmtPercent(apr, 2)}
                 </div>
                 <div className="text-xs text-slate-500">
-                  = Rewards/year ÷ Total investment
+                  = Rewards/year ÷ Total investment (based on current daily
+                  rate; PoA stops after cap).
                 </div>
               </div>
 
-              <p className="mt-3 text-xs text-slate-500">
-                *APR is a simple ratio (no compounding). It does not account for
-                fees, taxes (beyond optional VAT), downtime, or price volatility
-                of R1/USD.
-              </p>
+              {/* Updated warning text with dynamic amounts */}
+              {licenseNotCoveredByPoA && (
+                <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                  Break-even not possible using PoA alone: max minable R1 at
+                  current price is{" "}
+                  <span className="font-semibold">
+                    {fmtCurrencyUSD(PoA_lifetimeUSD)}
+                  </span>
+                  , which is less than your license cost{" "}
+                  <span className="font-semibold">
+                    {fmtCurrencyUSD(costPerLicense)}
+                  </span>
+                  . Enable Proof of AI or adjust inputs to reach break-even.
+                </div>
+              )}
+              {!isFinite(daysToROI) && (
+                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  With the 1,575 R1 cap and current settings, total revenue
+                  cannot reach your total investment. Increase R1 price, enable
+                  Proof of AI, or reduce costs.
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -587,7 +666,15 @@ export default function Ratio1RoiCalculator() {
                     (vatEnabled && isFinite(vatPct)
                       ? (t.priceUSD * vatPct) / 100
                       : 0);
-                  const roiDays = (licenseCostWithVat + hardwareUsd) / dailyUsd; // includes hardware if entered
+
+                  const investment = licenseCostWithVat + hardwareUsd;
+
+                  const roiDaysForTier = breakEvenDaysWithCap(
+                    investment,
+                    TOKENS_PER_DAY * effectiveR1USD, // PoA daily USD depends on price, not tier
+                    AI_dailyUSD
+                  );
+
                   return (
                     <tr key={t.id} className="border-b last:border-none">
                       <td className="p-2 font-medium">{t.id}</td>
@@ -596,7 +683,9 @@ export default function Ratio1RoiCalculator() {
                         {fmtCurrencyUSD(licenseCostWithVat)}
                       </td>
                       <td className="p-2">
-                        {isFinite(roiDays) ? fmtNumber(roiDays, 1) : "–"}
+                        {isFinite(roiDaysForTier)
+                          ? fmtNumber(roiDaysForTier, 1)
+                          : "–"}
                       </td>
                     </tr>
                   );
@@ -605,7 +694,10 @@ export default function Ratio1RoiCalculator() {
             </table>
           </div>
           <p className="mt-3 text-xs text-slate-500">
-            *ROI includes optional VAT and hardware if enabled.
+            *ROI includes optional VAT and hardware if enabled, and accounts for
+            the PoA lifetime cap of {fmtNumber(MAX_R1_PER_LICENSE, 0)} R1 per
+            license. After approximately {fmtNumber(CAP_DAYS, 0)} days, PoA
+            stops and only Proof of AI (if any) contributes to revenue.
           </p>
         </section>
 
@@ -614,8 +706,14 @@ export default function Ratio1RoiCalculator() {
           <h2 className="mb-2 text-base font-semibold">Formulae</h2>
           <ul className="list-disc space-y-1 pl-5">
             <li>
-              <span className="font-medium">Rewards/day</span> = (1.45 R1 × R1
-              price) + (Proof of AI USD/month ÷ 30, if enabled).
+              <span className="font-medium">Rewards/day</span> = (
+              {TOKENS_PER_DAY} R1 × R1 price) + (Proof of AI USD/month ÷ 30, if
+              enabled).
+            </li>
+            <li>
+              <span className="font-medium">PoA lifetime</span> = up to{" "}
+              {fmtNumber(MAX_R1_PER_LICENSE, 0)} R1 (≈ {fmtNumber(CAP_DAYS, 0)}{" "}
+              days at {TOKENS_PER_DAY} R1/day).
             </li>
             <li>
               <span className="font-medium">Final license cost</span> = Base
@@ -626,12 +724,15 @@ export default function Ratio1RoiCalculator() {
               license + Hardware (if enabled).
             </li>
             <li>
-              <span className="font-medium">Days to break-even</span> = Total
-              investment ÷ Rewards/day.
+              <span className="font-medium">Break-even (with PoA cap)</span>: if
+              investment ≤ (PoA/day + AI/day) × capDays → t = investment ÷
+              (PoA/day + AI/day); otherwise (after PoA stops) → t = (investment
+              − PoA/day × capDays) ÷ AI/day.
             </li>
             <li>
               <span className="font-medium">APR</span> = (Rewards/year ÷ Total
-              investment) × 100.
+              investment) × 100 (based on current daily rate; PoA ends after
+              cap).
             </li>
           </ul>
         </section>
