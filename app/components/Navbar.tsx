@@ -10,7 +10,6 @@ export default function Navbar() {
   return (
     <nav className="bg-slate-50 sticky top-0 z-50 border-b border-slate-200/60 shadow-xs">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-20 sm:px-6 lg:px-8">
-        {/* Left: logo */}
         <Link href="/" className="flex items-center gap-2" aria-label="Home">
           <Image
             src="/ratio1_calculator.svg"
@@ -18,7 +17,7 @@ export default function Navbar() {
             width={128}
             height={32}
             priority
-            className="h-9 w-auto lg:h-10"
+            className="h-6 w-auto lg:h-10"
           />
         </Link>
         {/* Center: nav links */}
@@ -37,14 +36,13 @@ export default function Navbar() {
             ))}
           </ul>
         </div> */}
-
         {/* Right: CTA + mobile menu trigger */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center">
           <Link
             href="https://app.ratio1.ai/"
             target="_blank"
             rel="noreferrer"
-            className="rounded-3xl px-6 py-3 text-base font-semibold text-white button"
+            className="sm:rounded-3xl rounded-2xl sm:px-6 sm:py-3 py-1 px-2 text-base font-semibold text-white button"
           >
             Buy License
           </Link>
