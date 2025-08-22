@@ -5,6 +5,7 @@
   --foreground: #fcfcfd;
 
   --color-body: #0b0b47;
+  --color-text: #0b0b47;
   --color-light: #fcfcfd;
   --color-primary: #1b47f7;
   --color-text_light: #7a91a8;
@@ -60,4 +61,12 @@ body {
 
 .textlight {
   color: var(--color-text_light);
+}
+
+.linkstyle {
+  color: var(--color-text);
+}
+
+.linkstyle:hover {
+  color: var(--color-primary);
 }
