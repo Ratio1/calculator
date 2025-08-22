@@ -1039,7 +1039,7 @@ function UsageBarStacked({
             color: "color-mix(in srgb, var(--color-body) 65%, transparent)",
           }}
         >
-          {usedClamped}+{reservedClamped}/{total} ({pctTotal}%)
+          {reservedClamped}+{usedClamped}/{total} ({pctTotal}%)
         </span>
       </div>
       <div
