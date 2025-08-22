@@ -515,13 +515,13 @@ export default function EdgeMixCalculator() {
 
       <div className="mx-auto max-w-5xl p-6">
         {/* Top bar */}
-
         <div className="flex flex-row justify-start items-start gap-1">
           <header className="mb-6 flex items-baseline justify-between">
             <h1 className="text-2xl font-bold">Max Proof of AI Rewards</h1>
           </header>
           <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.0.1</div>
         </div>
+
         <section className="rounded-2xl bg-white p-5 shadow mb-4">
           <div className="flex items-start">
             {/* icon */}
@@ -550,6 +550,7 @@ export default function EdgeMixCalculator() {
             </div>
           </div>
         </section>
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {/* Inputs */}
           <section
@@ -615,21 +616,42 @@ export default function EdgeMixCalculator() {
                 </p>
               </LabeledInput>
 
+              {/* OS select with padded right + custom chevron */}
               <div className="grid gap-2">
                 <label className="text-sm font-medium">Operating system</label>
-                <select
-                  className="w-full rounded-xl px-3 py-2"
-                  style={{
-                    border: "1px solid var(--color-slate-150)",
-                    background: "var(--color-light)",
-                  }}
-                  value={os}
-                  onChange={(e) => setOs(e.target.value as OSKind)}
-                >
-                  <option value="Linux">Linux</option>
-                  <option value="Windows">Windows</option>
-                  <option value="macOS">macOS</option>
-                </select>
+                <div className="relative">
+                  <select
+                    className="w-full rounded-xl px-3 py-2 pr-12 appearance-none"
+                    style={{
+                      border: "1px solid var(--color-slate-150)",
+                      background: "var(--color-light)",
+                    }}
+                    value={os}
+                    onChange={(e) => setOs(e.target.value as OSKind)}
+                  >
+                    <option value="Linux">Linux</option>
+                    <option value="Windows">Windows</option>
+                    <option value="macOS">macOS</option>
+                  </select>
+                  {/* Custom chevron */}
+                  <svg
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--color-body) 80%, transparent)",
+                    }}
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+
                 <p
                   className="text-xs"
                   style={{
@@ -641,7 +663,6 @@ export default function EdgeMixCalculator() {
                   {reservedSgiB} GiB storage.
                 </p>
 
-                {/* Small warning for Windows/macOS */}
                 {(os === "Windows" || os === "macOS") && (
                   <div
                     className="mt-2 rounded-md p-2 text-xs"
@@ -661,25 +682,47 @@ export default function EdgeMixCalculator() {
                 )}
               </div>
 
+              {/* GPU select with padded right + custom chevron */}
               <div className="grid gap-2">
                 <label className="text-sm font-medium">GPU category</label>
-                <select
-                  className="w-full rounded-xl px-3 py-2"
-                  style={{
-                    border: "1px solid var(--color-slate-150)",
-                    background: "var(--color-light)",
-                  }}
-                  value={gpuCategory}
-                  onChange={(e) => setGpuCategory(e.target.value as GCategory)}
-                >
-                  <option value="NONE">None</option>
-                  <option value="G-ENTRY">G-ENTRY (RTX 2060–3070)</option>
-                  <option value="G-MED">G-MED (RTX 2080–3080, A3000)</option>
-                  <option value="G-HIGH">
-                    G-HIGH (RTX 3090–5090, A4/5000)
-                  </option>
-                  <option value="G-ULTRA">G-ULTRA (A100, H100)</option>
-                </select>
+                <div className="relative">
+                  <select
+                    className="w-full rounded-xl px-3 py-2 pr-12 appearance-none"
+                    style={{
+                      border: "1px solid var(--color-slate-150)",
+                      background: "var(--color-light)",
+                    }}
+                    value={gpuCategory}
+                    onChange={(e) =>
+                      setGpuCategory(e.target.value as GCategory)
+                    }
+                  >
+                    <option value="NONE">None</option>
+                    <option value="G-ENTRY">G-ENTRY (RTX 2060–3070)</option>
+                    <option value="G-MED">G-MED (RTX 2080–3080, A3000)</option>
+                    <option value="G-HIGH">
+                      G-HIGH (RTX 3090–5090, A4/5000)
+                    </option>
+                    <option value="G-ULTRA">G-ULTRA (A100, H100)</option>
+                  </select>
+                  {/* Custom chevron */}
+                  <svg
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--color-body) 80%, transparent)",
+                    }}
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
 
                 {gpuRule && (
                   <p
