@@ -11,7 +11,7 @@ type WorkerFlavor = {
   name: string;
   cpu: number; // cores
   ram: number; // GB
-  storageUnits: number; // 1 unit = 50 GiB
+  storageGiB: number; // exact GiB storage required per job
   supportsGpu: GCategory[];
   baseRevenue: number; // $/month (treated as "rewards" in UI)
 };
@@ -32,7 +32,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "ENTRY",
     cpu: 1,
     ram: 2,
-    storageUnits: 0,
+    storageGiB: 8,
     supportsGpu: [],
     baseRevenue: 11.25,
   },
@@ -42,7 +42,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "LOW1",
     cpu: 2,
     ram: 4,
-    storageUnits: 0,
+    storageGiB: 16,
     supportsGpu: [],
     baseRevenue: 22.5,
   },
@@ -52,7 +52,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "LOW2",
     cpu: 2,
     ram: 8,
-    storageUnits: 0,
+    storageGiB: 32,
     supportsGpu: [],
     baseRevenue: 30,
   },
@@ -62,7 +62,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "MED1",
     cpu: 3,
     ram: 12,
-    storageUnits: 0,
+    storageGiB: 48,
     supportsGpu: ["G-ENTRY"],
     baseRevenue: 57.5,
   },
@@ -72,7 +72,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "MED2",
     cpu: 6,
     ram: 14,
-    storageUnits: 0,
+    storageGiB: 56,
     supportsGpu: ["G-ENTRY", "G-MED"],
     baseRevenue: 87.5,
   },
@@ -82,7 +82,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "HIGH1",
     cpu: 8,
     ram: 22,
-    storageUnits: 0,
+    storageGiB: 88,
     supportsGpu: ["G-MED"],
     baseRevenue: 112.5,
   },
@@ -92,7 +92,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "HIGH2",
     cpu: 12,
     ram: 30,
-    storageUnits: 0,
+    storageGiB: 120,
     supportsGpu: ["G-MED", "G-HIGH"],
     baseRevenue: 160,
   },
@@ -102,7 +102,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "ULTRA1",
     cpu: 16,
     ram: 62,
-    storageUnits: 0,
+    storageGiB: 248,
     supportsGpu: ["G-MED", "G-ULTRA"],
     baseRevenue: 250,
   },
@@ -112,7 +112,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "ULTRA2",
     cpu: 22,
     ram: 124,
-    storageUnits: 0,
+    storageGiB: 496,
     supportsGpu: ["G-HIGH", "G-ULTRA"],
     baseRevenue: 375,
   },
@@ -123,7 +123,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "PGSQL-LOW",
     cpu: 1,
     ram: 2,
-    storageUnits: 1,
+    storageGiB: 50,
     supportsGpu: [],
     baseRevenue: 30,
   },
@@ -133,7 +133,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "PGSQL-MED",
     cpu: 2,
     ram: 4,
-    storageUnits: 4,
+    storageGiB: 200,
     supportsGpu: [],
     baseRevenue: 65,
   },
@@ -143,7 +143,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "MYSQL-LOW",
     cpu: 1,
     ram: 2,
-    storageUnits: 1,
+    storageGiB: 50,
     supportsGpu: [],
     baseRevenue: 30,
   },
@@ -153,7 +153,27 @@ const WORKERS: WorkerFlavor[] = [
     name: "MYSQL-MED",
     cpu: 2,
     ram: 4,
-    storageUnits: 4,
+    storageGiB: 200,
+    supportsGpu: [],
+    baseRevenue: 65,
+  },
+  {
+    id: "MSSQL-LOW",
+    group: "Services",
+    name: "MSSQL-LOW",
+    cpu: 1,
+    ram: 2,
+    storageGiB: 50,
+    supportsGpu: [],
+    baseRevenue: 30,
+  },
+  {
+    id: "MSSQL-MED",
+    group: "Services",
+    name: "MSSQL-MED",
+    cpu: 2,
+    ram: 4,
+    storageGiB: 200,
     supportsGpu: [],
     baseRevenue: 65,
   },
@@ -163,7 +183,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "NOSQL-LOW",
     cpu: 1,
     ram: 2,
-    storageUnits: 1,
+    storageGiB: 50,
     supportsGpu: [],
     baseRevenue: 30,
   },
@@ -173,7 +193,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "NOSQL-MED",
     cpu: 2,
     ram: 4,
-    storageUnits: 4,
+    storageGiB: 200,
     supportsGpu: [],
     baseRevenue: 65,
   },
@@ -185,7 +205,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "N-ENTRY",
     cpu: 3,
     ram: 14,
-    storageUnits: 0,
+    storageGiB: 0,
     supportsGpu: ["G-ENTRY"],
     baseRevenue: 75,
   },
@@ -195,7 +215,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "N-MED1",
     cpu: 8,
     ram: 22,
-    storageUnits: 0,
+    storageGiB: 0,
     supportsGpu: ["G-ENTRY", "G-MED"],
     baseRevenue: 112.5,
   },
@@ -205,7 +225,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "N-MED2",
     cpu: 12,
     ram: 30,
-    storageUnits: 0,
+    storageGiB: 0,
     supportsGpu: ["G-MED", "G-HIGH"],
     baseRevenue: 180,
   },
@@ -215,7 +235,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "N-HIGH",
     cpu: 16,
     ram: 60,
-    storageUnits: 0,
+    storageGiB: 0,
     supportsGpu: ["G-MED", "G-HIGH"],
     baseRevenue: 270,
   },
@@ -225,7 +245,7 @@ const WORKERS: WorkerFlavor[] = [
     name: "N-ULTRA",
     cpu: 22,
     ram: 124,
-    storageUnits: 0,
+    storageGiB: 0,
     supportsGpu: ["G-HIGH", "G-ULTRA"],
     baseRevenue: 400,
   },
@@ -323,13 +343,20 @@ export default function EdgeMixCalculator() {
   const reservedR = clamp(osRes.ram, 0, totalR);
   const reservedSgiB = Math.min(osRes.storageGiB, totalStorageGiB);
 
-  // Available for optimizer (storage in 50 GiB units)
+  // Available for optimizer (storage handled in GiB with adaptive step)
   const availC = Math.max(0, totalC - reservedC);
   const availR = Math.max(0, totalR - reservedR);
-  const availUnits = Math.max(
-    0,
-    Math.floor((totalStorageGiB - reservedSgiB) / 50)
+  const availStorageGiB = Math.max(0, totalStorageGiB - reservedSgiB);
+  // Adaptive storage step so DP stays fast while allowing non-50 multiples
+  const MAX_STORAGE_STEPS = 200; // cap the DP storage dimension
+  const storageStepGiB = Math.max(
+    1,
+    Math.ceil(
+      availStorageGiB /
+        Math.max(1, Math.min(MAX_STORAGE_STEPS, availStorageGiB))
+    )
   );
+  const availUnits = Math.floor(availStorageGiB / storageStepGiB);
 
   // GPU count is implicit: max 1 → 0 if NONE, else 1
   const gpuCount = gpuCategory === "NONE" ? 0 : 1;
@@ -341,6 +368,13 @@ export default function EdgeMixCalculator() {
 
     const NON_NATIVE = WORKERS.filter((w) => w.group !== "Native Apps");
     const NATIVE = WORKERS.filter((w) => w.group === "Native Apps");
+    // Precompute storage units per job (rounded up to the current step)
+    const nonNativeUnits = NON_NATIVE.map((w) =>
+      Math.ceil((w.storageGiB ?? 0) / storageStepGiB)
+    );
+    const nativeUnits = NATIVE.map((w) =>
+      Math.ceil((w.storageGiB ?? 0) / storageStepGiB)
+    );
     const idx = (c: number, r: number, s: number) =>
       (c * (R + 1) + r) * (S + 1) + s;
 
@@ -357,8 +391,9 @@ export default function EdgeMixCalculator() {
           let bestItem = -1;
           for (let i = 0; i < NON_NATIVE.length; i++) {
             const w = NON_NATIVE[i];
-            if (c >= w.cpu && r >= w.ram && s >= w.storageUnits) {
-              const prev = idx(c - w.cpu, r - w.ram, s - w.storageUnits);
+            const su = nonNativeUnits[i];
+            if (c >= w.cpu && r >= w.ram && s >= su) {
+              const prev = idx(c - w.cpu, r - w.ram, s - su);
               const candidate = rev[prev] + w.baseRevenue;
               if (candidate > best) {
                 best = candidate;
@@ -386,7 +421,7 @@ export default function EdgeMixCalculator() {
       countsA[w.id] = (countsA[w.id] ?? 0) + 1;
       ccA -= w.cpu;
       rrA -= w.ram;
-      ssA -= w.storageUnits;
+      ssA -= nonNativeUnits[p];
     }
 
     let baseRevenueA = 0;
@@ -439,8 +474,10 @@ export default function EdgeMixCalculator() {
       leftover: { cores: number; ram: number; storageUnits: number };
     } | null = null;
 
-    for (const w of NATIVE) {
-      if (w.cpu <= C && w.ram <= R && w.storageUnits <= S) {
+    for (let i = 0; i < NATIVE.length; i++) {
+      const w = NATIVE[i];
+      const su = nativeUnits[i];
+      if (w.cpu <= C && w.ram <= R && su <= S) {
         let gpuBonus = 0,
           gpuUsed = 0,
           assigned: string | null = null;
@@ -474,7 +511,7 @@ export default function EdgeMixCalculator() {
 
     // Choose the better plan
     return planB && planB.totalRevenue > planA.totalRevenue ? planB : planA;
-  }, [availC, availR, availUnits, gpuCategory, gpuCount]);
+  }, [availC, availR, availUnits, gpuCategory, gpuCount, storageStepGiB]);
 
   // rows for table (annotate the GPU-using row)
   const rows = WORKERS.filter((w) => (result.counts[w.id] ?? 0) > 0).map(
@@ -491,8 +528,11 @@ export default function EdgeMixCalculator() {
   // For usage bars
   const usedJobC = availC - Math.max(result.leftover.cores, 0);
   const usedJobR = availR - Math.max(result.leftover.ram, 0);
-  const usedJobSgiB =
-    (availUnits - Math.max(result.leftover.storageUnits, 0)) * 50;
+  // Exact used storage in GiB from selected rows (avoids step rounding)
+  const usedJobSgiB = rows.reduce(
+    (sum, r) => sum + (r.storageGiB ?? 0) * r.count,
+    0
+  );
 
   return (
     <div
@@ -519,7 +559,7 @@ export default function EdgeMixCalculator() {
           <header className="mb-6 flex items-baseline justify-between">
             <h1 className="text-2xl font-bold">Max Proof of AI Rewards</h1>
           </header>
-          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.0.1</div>
+          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.0.2</div>
         </div>
 
         <section className="rounded-2xl bg-white p-5 shadow mb-4">
@@ -605,15 +645,6 @@ export default function EdgeMixCalculator() {
                   onChange={(e) => setStorageText(normalizeInt(e.target.value))}
                   placeholder="0"
                 />
-                <p
-                  className="mt-1 text-xs"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--color-body) 60%, transparent)",
-                  }}
-                >
-                  Services consume 50 GiB or 200 GiB per job.
-                </p>
               </LabeledInput>
 
               {/* OS select with padded right + custom chevron */}
@@ -893,8 +924,8 @@ export default function EdgeMixCalculator() {
                               {r.ram * r.count} GB
                             </td>
                             <td className="p-2 text-right">
-                              {r.storageUnits * 50 * r.count
-                                ? `${r.storageUnits * 50 * r.count} GiB`
+                              {r.storageGiB * r.count
+                                ? `${r.storageGiB * r.count} GiB`
                                 : "—"}
                             </td>
                             <td className="p-2 text-right">
