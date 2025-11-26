@@ -22,6 +22,7 @@ type TierId = (typeof TIERS)[number]["id"];
 const TOKENS_PER_DAY = 1.45; // PoA production in R1/day
 const MAX_R1_PER_LICENSE = 1575; // lifetime R1 cap per license
 const CAP_DAYS = MAX_R1_PER_LICENSE / TOKENS_PER_DAY; // ~1086.21 days
+const PROOF_OF_AI_BURN_RATE = 0.15; // 15% gas fee burned from AI rewards
 
 /** ----------- formatting ----------- */
 function fmtCurrencyUSD(v: number) {
@@ -189,6 +190,9 @@ export default function Ratio1RoiCalculator() {
   const hwOneTimeUsd = toNum(hardwareOneTimePrice);
   const hwMonthlyUsd = toNum(hardwareMonthlyPrice);
   const aiMonthlyUsd = toNum(proofOfAiUSDPerMonth);
+  const aiMonthlyNetUsd = isFinite(aiMonthlyUsd)
+    ? aiMonthlyUsd * (1 - PROOF_OF_AI_BURN_RATE)
+    : NaN;
 
   // Effective price based on mode
   const effectiveR1USD =
@@ -197,7 +201,7 @@ export default function Ratio1RoiCalculator() {
   /** ------- derived daily and caps ------- */
   const PoA_dailyUSD = TOKENS_PER_DAY * effectiveR1USD; // USD/day from PoA
   const AI_dailyUSD =
-    aiEnabled && isFinite(aiMonthlyUsd) ? aiMonthlyUsd / 30 : 0;
+    aiEnabled && isFinite(aiMonthlyNetUsd) ? aiMonthlyNetUsd / 30 : 0;
 
   const grossDailyUsd = PoA_dailyUSD + AI_dailyUSD; // current daily rate before expenses
 
@@ -557,6 +561,15 @@ export default function Ratio1RoiCalculator() {
                   <p className="text-xs text-slate-500 mt-1">
                     Converted to daily by dividing by 30 for ROI math.
                   </p>
+                  {aiEnabled && isFinite(aiMonthlyUsd) && aiMonthlyUsd > 0 && (
+                    <p className="text-xs text-slate-500">
+                      Net Proof of AI rewards:{" "}
+                      <span className="font-semibold">
+                        {fmtCurrencyUSD(aiMonthlyNetUsd)}
+                      </span>{" "}
+                      per month after the 15% Ratio1 protocol gas burn.
+                    </p>
+                  )}
                 </label>
               )}
             </div>
@@ -792,8 +805,8 @@ export default function Ratio1RoiCalculator() {
           <ul className="list-disc space-y-1 pl-5">
             <li>
               <span className="font-medium">Net rewards/day</span> = (
-              {TOKENS_PER_DAY} R1 × R1 price) + (Proof of AI USD/month ÷ 30, if
-              enabled) − (Hardware USD/month ÷ 30, if provided).
+              {TOKENS_PER_DAY} R1 × R1 price) + (Proof of AI USD/month ÷ 30 ×
+              0.85, if enabled) − (Hardware USD/month ÷ 30, if provided).
             </li>
             <li>
               <span className="font-medium">PoA lifetime</span> = up to{" "}
