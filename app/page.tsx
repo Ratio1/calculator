@@ -67,25 +67,26 @@ function toNum(v: string): number {
 function breakEvenDaysWithCap(
   investmentUSD: number,
   PoA_dailyUSD: number,
-  AI_dailyUSD: number
+  AI_dailyUSD: number,
+  dailyExpenseUSD = 0
 ): number {
   if (investmentUSD <= 0) return 0;
 
-  const rateBeforeCap = PoA_dailyUSD + AI_dailyUSD;
+  const netBeforeCap = PoA_dailyUSD + AI_dailyUSD - dailyExpenseUSD;
+  const netAfterCap = AI_dailyUSD - dailyExpenseUSD;
 
-  if (rateBeforeCap <= 0) return Infinity;
+  if (netBeforeCap <= 0) return Infinity;
 
-  const revenueIfRunUntilCap = rateBeforeCap * CAP_DAYS;
+  const netIfRunUntilCap = netBeforeCap * CAP_DAYS;
 
-  if (investmentUSD <= revenueIfRunUntilCap) {
-    return investmentUSD / rateBeforeCap;
+  if (investmentUSD <= netIfRunUntilCap) {
+    return investmentUSD / netBeforeCap;
   }
 
-  // After cap, only AI contributes
-  if (AI_dailyUSD <= 0) return Infinity;
+  if (netAfterCap <= 0) return Infinity;
 
-  const remainingAfterCap = investmentUSD - PoA_dailyUSD * CAP_DAYS;
-  return remainingAfterCap / AI_dailyUSD;
+  const remainingAfterCap = investmentUSD - netIfRunUntilCap;
+  return CAP_DAYS + remainingAfterCap / netAfterCap;
 }
 
 /** ----------- Accessible toggle ----------- */
@@ -130,7 +131,8 @@ export default function Ratio1RoiCalculator() {
 
   // Optional costs/production with toggles
   const [hardwareEnabled, setHardwareEnabled] = useState<boolean>(false);
-  const [hardwarePrice, setHardwarePrice] = useState<string>("");
+  const [hardwareOneTimePrice, setHardwareOneTimePrice] = useState<string>("");
+  const [hardwareMonthlyPrice, setHardwareMonthlyPrice] = useState<string>("");
 
   const [vatEnabled, setVatEnabled] = useState<boolean>(false);
   const [vatPercent, setVatPercent] = useState<string>("");
@@ -184,7 +186,8 @@ export default function Ratio1RoiCalculator() {
   // Numeric parse of text inputs (used for math)
   const manualR1 = toNum(manualR1USD);
   const vatPct = toNum(vatPercent);
-  const hwUsd = toNum(hardwarePrice);
+  const hwOneTimeUsd = toNum(hardwareOneTimePrice);
+  const hwMonthlyUsd = toNum(hardwareMonthlyPrice);
   const aiMonthlyUsd = toNum(proofOfAiUSDPerMonth);
 
   // Effective price based on mode
@@ -196,9 +199,7 @@ export default function Ratio1RoiCalculator() {
   const AI_dailyUSD =
     aiEnabled && isFinite(aiMonthlyUsd) ? aiMonthlyUsd / 30 : 0;
 
-  const dailyUsd = PoA_dailyUSD + AI_dailyUSD; // current daily rate (pre-cap)
-  const monthlyUsd = dailyUsd * 30;
-  const yearlyUsd = dailyUsd * 365;
+  const grossDailyUsd = PoA_dailyUSD + AI_dailyUSD; // current daily rate before expenses
 
   // Lifetime PoA value at current price (cap × price)
   const PoA_lifetimeUSD = MAX_R1_PER_LICENSE * effectiveR1USD;
@@ -208,21 +209,31 @@ export default function Ratio1RoiCalculator() {
   const vatAmount =
     vatEnabled && isFinite(vatPct) ? (licenseBasePrice * vatPct) / 100 : 0;
   const costPerLicense = licenseBasePrice + vatAmount; // license + VAT only
-  const hardwareUsd = hardwareEnabled && isFinite(hwUsd) ? hwUsd : 0;
-  const totalInvestment = costPerLicense + hardwareUsd; // total = license (+VAT) + hardware
+  const hardwareOneTimeUsd =
+    hardwareEnabled && isFinite(hwOneTimeUsd) ? hwOneTimeUsd : 0;
+  const hardwareMonthlyUsd =
+    hardwareEnabled && isFinite(hwMonthlyUsd) ? hwMonthlyUsd : 0;
+  const hardwareDailyExpenseUsd = hardwareMonthlyUsd / 30;
+  const totalInvestment = costPerLicense + hardwareOneTimeUsd; // total = license (+VAT) + one-time hardware
+
+  // Net rewards after monthly hardware expense
+  const dailyNetUsd = grossDailyUsd - hardwareDailyExpenseUsd;
+  const monthlyNetUsd = dailyNetUsd * 30;
+  const yearlyNetUsd = dailyNetUsd * 365;
 
   // ROI & APR (break-even uses PoA cap)
   const daysToROI = breakEvenDaysWithCap(
     totalInvestment,
     PoA_dailyUSD,
-    AI_dailyUSD
+    AI_dailyUSD,
+    hardwareDailyExpenseUsd
   );
   const weeksToROI = daysToROI / 7;
   const monthsToROI = daysToROI / 30;
 
-  // APR remains a simple ratio using the *current* daily rate (pre-cap), as an indicative metric.
+  // APR remains a simple ratio using the *current* net daily rate (pre-cap), as an indicative metric.
   const apr =
-    totalInvestment > 0 ? (yearlyUsd / totalInvestment) * 100 : Infinity;
+    totalInvestment > 0 ? (yearlyNetUsd / totalInvestment) * 100 : Infinity;
 
   const breakEvenDate = useMemo(() => {
     if (!isFinite(daysToROI)) return null;
@@ -231,8 +242,11 @@ export default function Ratio1RoiCalculator() {
     return d.toISOString().slice(0, 10);
   }, [daysToROI]);
 
-  // Message condition: if R1 price × 1575 doesn't cover the license (license + VAT)
-  const licenseNotCoveredByPoA = PoA_lifetimeUSD < costPerLicense;
+  // Max PoA value after subtracting monthly hardware expenses during PoA period
+  const PoA_lifetimeNetUSD = PoA_lifetimeUSD - hardwareDailyExpenseUsd * CAP_DAYS;
+
+  // Message condition: if R1 price × 1575 doesn't cover the upfront cost
+  const licenseNotCoveredByPoA = PoA_lifetimeNetUSD < totalInvestment;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pt-10">
@@ -241,7 +255,7 @@ export default function Ratio1RoiCalculator() {
           <header className="mb-6 flex items-baseline justify-between">
             <h1 className="text-2xl font-bold">ROI Calculator</h1>
           </header>
-          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.0.2</div>
+          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.1.0</div>
         </div>
 
         <section className="rounded-2xl bg-white p-5 shadow mb-4">
@@ -407,30 +421,68 @@ export default function Ratio1RoiCalculator() {
                   checked={hardwareEnabled}
                   onChange={(v) => {
                     setHardwareEnabled(v);
-                    if (!v) setHardwarePrice("");
+                    if (!v) {
+                      setHardwareOneTimePrice("");
+                      setHardwareMonthlyPrice("");
+                    }
                   }}
                   srLabel="Toggle hardware"
                 />
               </div>
               {hardwareEnabled && (
-                <label className="grid gap-1">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      pattern="[0-9]*[.,]?[0-9]*"
-                      className="w-full rounded-xl border px-3 py-2 pr-16"
-                      value={hardwarePrice}
-                      placeholder="0"
-                      onChange={(e) =>
-                        setHardwarePrice(normalizeDecimalInput(e.target.value))
-                      }
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded bg-slate-100 px-2 text-xs">
-                      USD
+                <div className="grid gap-3">
+                  <label className="grid gap-1">
+                    <span className="text-sm font-semibold text-slate-700">
+                      One-time hardware cost
                     </span>
-                  </div>
-                </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        pattern="[0-9]*[.,]?[0-9]*"
+                        className="w-full rounded-xl border px-3 py-2 pr-16"
+                        value={hardwareOneTimePrice}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setHardwareOneTimePrice(
+                            normalizeDecimalInput(e.target.value)
+                          )
+                        }
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded bg-slate-100 px-2 text-xs">
+                        USD
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="grid gap-1">
+                    <span className="text-sm font-semibold text-slate-700">
+                      Hardware cost per month
+                    </span>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        pattern="[0-9]*[.,]?[0-9]*"
+                        className="w-full rounded-xl border px-3 py-2 pr-24"
+                        value={hardwareMonthlyPrice}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setHardwareMonthlyPrice(
+                            normalizeDecimalInput(e.target.value)
+                          )
+                        }
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded bg-slate-100 px-2 text-xs">
+                        USD/month
+                      </span>
+                    </div>
+                  </label>
+                  <p className="text-xs text-slate-500">
+                    Monthly hardware is treated as an ongoing expense and is
+                    subtracted from rewards for ROI calculations.
+                  </p>
+                </div>
               )}
 
               <div className="my-2 h-px bg-slate-200" />
@@ -463,7 +515,8 @@ export default function Ratio1RoiCalculator() {
                   <span className="font-semibold">
                     {fmtCurrencyUSD(PoA_lifetimeUSD)}
                   </span>
-                  . After that, only Proof of AI rewards (if enabled) remain.
+                  . After that, only Proof of AI rewards (if enabled) remain
+                  while any monthly hardware costs continue.
                 </p>
               </div>
 
@@ -547,11 +600,26 @@ export default function Ratio1RoiCalculator() {
                 />
 
                 <BreakdownRow
-                  label="Hardware"
-                  value={fmtCurrencyUSD(hardwareUsd)}
-                  muted={!hardwareEnabled}
+                  label="Hardware (one-time)"
+                  value={fmtCurrencyUSD(hardwareOneTimeUsd)}
+                  muted={!hardwareEnabled || hardwareOneTimeUsd <= 0}
+                />
+
+                <BreakdownRow
+                  label="Hardware/month (ongoing)"
+                  value={
+                    hardwareMonthlyUsd > 0
+                      ? fmtCurrencyUSD(hardwareMonthlyUsd)
+                      : fmtCurrencyUSD(0)
+                  }
+                  muted={!hardwareEnabled || hardwareMonthlyUsd <= 0}
                 />
               </div>
+
+              <p className="mt-2 text-xs text-slate-500">
+                Monthly hardware cost is not added to the upfront total—it is
+                deducted from rewards each month.
+              </p>
 
               {/* Emphasized Total */}
               <div
@@ -568,7 +636,7 @@ export default function Ratio1RoiCalculator() {
                   {fmtCurrencyUSD(totalInvestment)}
                 </div>
                 <div className="text-xs text-slate-500">
-                  = Final license cost + Hardware
+                  = Final license cost + Hardware (one-time)
                 </div>
               </div>
             </div>
@@ -580,9 +648,25 @@ export default function Ratio1RoiCalculator() {
               </h3>
 
               <div className="grid gap-3 text-sm">
-                <Row label="Rewards/day">{fmtCurrencyUSD(dailyUsd)}</Row>
-                <Row label="Rewards/month">{fmtCurrencyUSD(monthlyUsd)}</Row>
-                <Row label="Rewards/year">{fmtCurrencyUSD(yearlyUsd)}</Row>
+                <Row label="Net rewards/day">
+                  {fmtCurrencyUSD(dailyNetUsd)}
+                </Row>
+                <Row label="Net rewards/month">
+                  {fmtCurrencyUSD(monthlyNetUsd)}
+                </Row>
+                <Row label="Net rewards/year">
+                  {fmtCurrencyUSD(yearlyNetUsd)}
+                </Row>
+
+                {hardwareMonthlyUsd > 0 && (
+                  <p className="text-xs text-slate-500">
+                    Includes monthly hardware expense of{" "}
+                    <span className="font-semibold">
+                      {fmtCurrencyUSD(hardwareMonthlyUsd)}
+                    </span>
+                    .
+                  </p>
+                )}
 
                 <div className="my-2 h-px bg-slate-200" />
 
@@ -613,22 +697,23 @@ export default function Ratio1RoiCalculator() {
                   {fmtPercent(apr, 2)}
                 </div>
                 <div className="text-xs text-slate-500">
-                  = Rewards/year ÷ Total investment (based on current daily
-                  rate; PoA stops after cap).
+                  = Net rewards/year ÷ Total investment (based on current net
+                  daily rate; PoA stops after cap).
                 </div>
               </div>
 
               {/* Updated warning text with dynamic amounts */}
               {licenseNotCoveredByPoA && (
                 <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                  Break-even not possible using PoA alone: max minable R1 at
-                  current price is{" "}
+                  Break-even not possible using PoA alone: max net PoA value at
+                  current price (after monthly hardware costs if any) is{" "}
                   <span className="font-semibold">
-                    {fmtCurrencyUSD(PoA_lifetimeUSD)}
+                    {fmtCurrencyUSD(PoA_lifetimeNetUSD)}
                   </span>
-                  , which is less than your license cost{" "}
+                  , which is less than your upfront cost (license + hardware
+                  one-time){" "}
                   <span className="font-semibold">
-                    {fmtCurrencyUSD(costPerLicense)}
+                    {fmtCurrencyUSD(totalInvestment)}
                   </span>
                   . Enable Proof of AI or adjust inputs to reach break-even.
                 </div>
@@ -665,12 +750,13 @@ export default function Ratio1RoiCalculator() {
                       ? (t.priceUSD * vatPct) / 100
                       : 0);
 
-                  const investment = licenseCostWithVat + hardwareUsd;
+                  const investment = licenseCostWithVat + hardwareOneTimeUsd;
 
                   const roiDaysForTier = breakEvenDaysWithCap(
                     investment,
                     TOKENS_PER_DAY * effectiveR1USD, // PoA daily USD depends on price, not tier
-                    AI_dailyUSD
+                    AI_dailyUSD,
+                    hardwareDailyExpenseUsd
                   );
 
                   return (
@@ -692,10 +778,11 @@ export default function Ratio1RoiCalculator() {
             </table>
           </div>
           <p className="mt-3 text-xs text-slate-500">
-            *ROI includes optional VAT and hardware if enabled, and accounts for
-            the PoA lifetime cap of {fmtNumber(MAX_R1_PER_LICENSE, 0)} R1 per
+            *ROI includes optional VAT, hardware (one-time and monthly), and
+            accounts for the PoA lifetime cap of {fmtNumber(MAX_R1_PER_LICENSE, 0)} R1 per
             license. After approximately {fmtNumber(CAP_DAYS, 0)} days, PoA
-            stops and only Proof of AI (if any) contributes to rewards.
+            stops and only Proof of AI (if any) contributes to rewards while
+            hardware expenses continue.
           </p>
         </section>
 
@@ -704,9 +791,9 @@ export default function Ratio1RoiCalculator() {
           <h2 className="mb-2 text-base font-semibold">Formulae</h2>
           <ul className="list-disc space-y-1 pl-5">
             <li>
-              <span className="font-medium">Rewards/day</span> = (
+              <span className="font-medium">Net rewards/day</span> = (
               {TOKENS_PER_DAY} R1 × R1 price) + (Proof of AI USD/month ÷ 30, if
-              enabled).
+              enabled) − (Hardware USD/month ÷ 30, if provided).
             </li>
             <li>
               <span className="font-medium">PoA lifetime</span> = up to{" "}
@@ -719,18 +806,19 @@ export default function Ratio1RoiCalculator() {
             </li>
             <li>
               <span className="font-medium">Total investment</span> = Cost per
-              license + Hardware (if enabled).
+              license + Hardware (one-time, if enabled).
             </li>
             <li>
               <span className="font-medium">Break-even (with PoA cap)</span>: if
-              investment ≤ (PoA/day + AI/day) × capDays → t = investment ÷
-              (PoA/day + AI/day); otherwise (after PoA stops) → t = (investment
-              − PoA/day × capDays) ÷ AI/day.
+              investment ≤ (PoA/day + AI/day − hardware/day) × capDays → t =
+              investment ÷ (PoA/day + AI/day − hardware/day); otherwise (after
+              PoA stops) → t = capDays + (investment − (PoA/day + AI/day −
+              hardware/day) × capDays) ÷ (AI/day − hardware/day).
             </li>
             <li>
-              <span className="font-medium">APR</span> = (Rewards/year ÷ Total
-              investment) × 100 (based on current daily rate; PoA ends after
-              cap).
+              <span className="font-medium">APR</span> = (Net rewards/year ÷
+              Total investment) × 100 (based on current net daily rate; PoA
+              ends after cap).
             </li>
           </ul>
         </section>
