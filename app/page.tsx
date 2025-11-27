@@ -247,7 +247,8 @@ export default function Ratio1RoiCalculator() {
   }, [daysToROI]);
 
   // Max PoA value after subtracting monthly hardware expenses during PoA period
-  const PoA_lifetimeNetUSD = PoA_lifetimeUSD - hardwareDailyExpenseUsd * CAP_DAYS;
+  const PoA_lifetimeNetUSD =
+    PoA_lifetimeUSD - hardwareDailyExpenseUsd * CAP_DAYS;
 
   // Message condition: if R1 price × 1575 doesn't cover the upfront cost
   const licenseNotCoveredByPoA = PoA_lifetimeNetUSD < totalInvestment;
@@ -259,7 +260,7 @@ export default function Ratio1RoiCalculator() {
           <header className="mb-6 flex items-baseline justify-between">
             <h1 className="text-2xl font-bold">ROI Calculator</h1>
           </header>
-          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.1.0</div>
+          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.1.2</div>
         </div>
 
         <section className="rounded-2xl bg-white p-5 shadow mb-4">
@@ -661,9 +662,7 @@ export default function Ratio1RoiCalculator() {
               </h3>
 
               <div className="grid gap-3 text-sm">
-                <Row label="Net rewards/day">
-                  {fmtCurrencyUSD(dailyNetUsd)}
-                </Row>
+                <Row label="Net rewards/day">{fmtCurrencyUSD(dailyNetUsd)}</Row>
                 <Row label="Net rewards/month">
                   {fmtCurrencyUSD(monthlyNetUsd)}
                 </Row>
@@ -792,10 +791,11 @@ export default function Ratio1RoiCalculator() {
           </div>
           <p className="mt-3 text-xs text-slate-500">
             *ROI includes optional VAT, hardware (one-time and monthly), and
-            accounts for the PoA lifetime cap of {fmtNumber(MAX_R1_PER_LICENSE, 0)} R1 per
-            license. After approximately {fmtNumber(CAP_DAYS, 0)} days, PoA
-            stops and only Proof of AI (if any) contributes to rewards while
-            hardware expenses continue.
+            accounts for the PoA lifetime cap of{" "}
+            {fmtNumber(MAX_R1_PER_LICENSE, 0)} R1 per license. After
+            approximately {fmtNumber(CAP_DAYS, 0)} days, PoA stops and only
+            Proof of AI (if any) contributes to rewards while hardware expenses
+            continue.
           </p>
         </section>
 
@@ -830,8 +830,8 @@ export default function Ratio1RoiCalculator() {
             </li>
             <li>
               <span className="font-medium">APR</span> = (Net rewards/year ÷
-              Total investment) × 100 (based on current net daily rate; PoA
-              ends after cap).
+              Total investment) × 100 (based on current net daily rate; PoA ends
+              after cap).
             </li>
           </ul>
         </section>

@@ -344,6 +344,9 @@ const OS_RESERVE: Record<OSKind, OSReserve> = {
   macOS: { cpu: 2, ram: 4, storageGiB: 30 },
 };
 
+/* ------------------------- ECONOMIC CONSTANTS ------------------------- */
+const PROOF_OF_AI_BURN_RATE = 0.15; // 15% of AI rewards are burned
+
 /* --------------------------- UTILITY FORMAT --------------------------- */
 const fmtUSD = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -572,6 +575,7 @@ export default function EdgeMixCalculator() {
   );
 
   const gpuRule = GPU_EXTRAS.find((r) => r.category === gpuCategory);
+  const netTotalRewards = result.totalRevenue * (1 - PROOF_OF_AI_BURN_RATE);
 
   // For usage bars
   const usedJobC = availC - Math.max(result.leftover.cores, 0);
@@ -607,7 +611,7 @@ export default function EdgeMixCalculator() {
           <header className="mb-6 flex items-baseline justify-between">
             <h1 className="text-2xl font-bold">Max Proof of AI Rewards</h1>
           </header>
-          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.0.2</div>
+          <div className="rounded-lg label px-1.5 py-0.5 text-xs">V1.0.3</div>
         </div>
 
         <section className="rounded-2xl bg-white p-5 shadow mb-4">
@@ -828,7 +832,7 @@ export default function EdgeMixCalculator() {
               Best possible mix for your node
             </h2>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <Stat
                 title="Base monthly rewards"
                 value={fmtUSD(result.baseRevenue)}
@@ -845,8 +849,13 @@ export default function EdgeMixCalculator() {
                 }
               />
               <StatStrong
-                title="Total possible monthly rewards"
+                title="Total gross possible monthly rewards"
                 value={fmtUSD(result.totalRevenue)}
+              />
+              <StatStrong
+                title="Total net possible monthly rewards after 15% protocol gas burn"
+                value={fmtUSD(netTotalRewards)}
+                valueColor="var(--color-primary)"
               />
             </div>
 
@@ -1063,7 +1072,17 @@ function Stat({
   );
 }
 
-function StatStrong({ title, value }: { title: string; value: string }) {
+function StatStrong({
+  title,
+  value,
+  valueColor = "var(--color-body)",
+  subtext,
+}: {
+  title: string;
+  value: string;
+  valueColor?: string;
+  subtext?: string;
+}) {
   return (
     <div
       className="rounded-xl p-4"
@@ -1079,10 +1098,20 @@ function StatStrong({ title, value }: { title: string; value: string }) {
       </div>
       <div
         className="mt-1 text-2xl font-extrabold"
-        style={{ color: "var(--color-body)" }}
+        style={{ color: valueColor }}
       >
         {value}
       </div>
+      {subtext && (
+        <div
+          className="mt-1 text-xs"
+          style={{
+            color: "var(--color-primary)",
+          }}
+        >
+          {subtext}
+        </div>
+      )}
     </div>
   );
 }
